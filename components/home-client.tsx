@@ -230,7 +230,7 @@ export default function HomeClient() {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  const openQuiz = (position: "hero" | "final") => {
+  const openQuiz = (position: "hero" | "meio" | "final") => {
     pushToDataLayer("diagnostico_b_cta_click", { action_name: "cta_click", cta_position: position })
     setQuizOpen(true)
   }
@@ -354,8 +354,14 @@ export default function HomeClient() {
             </h2>
           </Reveal>
 
-          <Reveal delay={180}>
-            <div className="divisor-dourado mx-auto mt-6" />
+          <Reveal delay={160} className="mt-8">
+            <button onClick={() => openQuiz("meio")} className="btn-primary">
+              Começar meu diagnóstico
+            </button>
+          </Reveal>
+
+          <Reveal delay={220}>
+            <div className="divisor-dourado mx-auto mt-8" />
           </Reveal>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-12 max-w-md mx-auto">
@@ -363,7 +369,7 @@ export default function HomeClient() {
               { valor: "1,4x", label: "multiplicador médio do investimento" },
               { valor: "Risco Zero", label: "garantia contratual" },
             ].map((stat, i) => (
-              <Reveal key={stat.valor} delay={220 + i * 100}>
+              <Reveal key={stat.valor} delay={280 + i * 100}>
                 <div className="card h-full text-center">
                   <p className="text-3xl md:text-4xl font-semibold text-gold-gradient mb-2">{stat.valor}</p>
                   <p className="text-xs font-light" style={{ color: "var(--text-70)" }}>
