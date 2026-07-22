@@ -6,6 +6,62 @@ import Image from "next/image"
 import { pushToDataLayer } from "@/lib/tracking"
 import { testimonials } from "@/lib/testimonials-data"
 
+/** Contador animado ao entrar na tela — replicado do app Viagente (12,8%) */
+function useCountUp(target: number, duration = 1200, decimals = 0) {
+  const [value, setValue] = useState(0)
+  const ref = useRef<HTMLDivElement | null>(null)
+  const hasAnimated = useRef(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true
+          let start: number | null = null
+          const step = (timestamp: number) => {
+            if (!start) start = timestamp
+            const elapsed = timestamp - start
+            const t = Math.min(elapsed / duration, 1)
+            const eased = 1 - Math.pow(1 - t, 3)
+            setValue(parseFloat((eased * target).toFixed(decimals)))
+            if (t < 1) requestAnimationFrame(step)
+            else setValue(target)
+          }
+          requestAnimationFrame(step)
+        }
+      },
+      { threshold: 0.1 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [target, duration, decimals])
+
+  return { value, ref }
+}
+
+/** Pulso de glow roxo ao entrar na seção na tela — replicado do app Viagente */
+function useSectionGlow() {
+  const ref = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          el.classList.add("glow-active")
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.1 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+  return ref
+}
+
 const DiagnosticoQuiz = dynamic(() => import("@/components/diagnostico-quiz"), {
   ssr: false,
   loading: () => null,
@@ -52,6 +108,114 @@ function Reveal({
     >
       {children}
     </div>
+  )
+}
+
+/**
+ * Seção "12,8%" — réplica exata (copy, efeitos, gradientes) da StatsSection
+ * do app Viagente (v0-landing-page-app-viagente/components/stats-section.tsx).
+ */
+function PainStatSection() {
+  const sectionRef = useSectionGlow()
+  const { value, ref: countRef } = useCountUp(12.8, 1400, 1)
+  const displayValue = value.toFixed(1).replace(".", ",")
+
+  return (
+    <section
+      ref={sectionRef as React.RefObject<HTMLElement>}
+      className="section-glow-trigger relative overflow-hidden flex flex-col justify-center px-6"
+      style={{ background: "#0A0A0C", minHeight: "100svh" }}
+      aria-label="Estatística sobre resgate de milhas"
+    >
+      <div
+        aria-hidden="true"
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "600px",
+          height: "600px",
+          border: "1px solid rgba(113,105,221,0.06)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "900px",
+          height: "900px",
+          border: "1px solid rgba(113,105,221,0.03)",
+        }}
+      />
+
+      <div className="relative z-10 max-w-2xl mx-auto text-center">
+        <div ref={countRef}>
+          <p
+            className="font-bold"
+            style={{
+              fontFamily: "var(--font-space-grotesk), sans-serif",
+              fontSize: "clamp(64px, 20vw, 160px)",
+              background: "linear-gradient(135deg, #7169DD 0%, #A8A3E8 50%, #E59501 100%)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+              margin: 0,
+              lineHeight: 1,
+              letterSpacing: "-0.04em",
+            }}
+          >
+            {displayValue}%
+          </p>
+        </div>
+
+        <Reveal delay={100}>
+          <p
+            className="font-medium mx-auto"
+            style={{
+              fontSize: "clamp(17px, 2.5vw, 22px)",
+              color: "rgba(248,249,252,0.75)",
+              lineHeight: 1.6,
+              margin: "28px auto 0",
+              maxWidth: "520px",
+            }}
+          >
+            dos brasileiros resgatam seus pontos em passagens aéreas.
+          </p>
+        </Reveal>
+
+        <Reveal delay={200}>
+          <p
+            className="font-bold mx-auto"
+            style={{
+              fontFamily: "var(--font-space-grotesk), sans-serif",
+              fontSize: "clamp(20px, 3vw, 28px)",
+              color: "#F8F9FC",
+              margin: "20px auto 0",
+              maxWidth: "540px",
+              lineHeight: 1.35,
+            }}
+          >
+            Você está resgatando os seus{" "}
+            <span
+              style={{
+                background: "linear-gradient(90deg, #E59501, #986300)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
+              }}
+            >
+              OU PAGANDO A CONTA?
+            </span>
+          </p>
+        </Reveal>
+      </div>
+
+      <hr className="glow-divider" style={{ marginTop: "80px" }} />
+    </section>
   )
 }
 
@@ -159,138 +323,150 @@ export default function HomeClient() {
         </div>
       </section>
 
-      {/* ---------- PROVA / CONFIANÇA ---------- */}
-      <section className="relative px-6 py-24">
-        <div className="max-w-4xl mx-auto">
-          <Reveal className="text-center mb-16">
-            <h2 className="font-light" style={{ fontSize: "clamp(26px, 4vw, 36px)", letterSpacing: "0.9px" }}>
-              Resultado real, não promessa genérica
-            </h2>
-            <div className="divisor-dourado mx-auto mt-4" />
-          </Reveal>
+      {/* ---------- PAIN STAT — 12,8% (réplica do app Viagente) ---------- */}
+      <PainStatSection />
 
-          <Reveal>
-            <div className="card-featured card text-center mb-8">
-              <p className="text-4xl md:text-5xl font-semibold text-gold-gradient mb-3">R$ 76 mil</p>
-              <p className="text-sm font-light" style={{ color: "var(--text-70)" }}>
-                em economia registrada no portal dos clientes da gestão, em 61 emissões.
-              </p>
-            </div>
-          </Reveal>
-
-          <Reveal delay={100}>
-            <div className="card mb-8">
-              <span className="text-xs uppercase font-medium" style={{ letterSpacing: "2px", color: "var(--gold-solid)" }}>
-                Caso real
-              </span>
-              <h3 className="mt-3 mb-2 text-lg font-normal">Executiva com destino a Buenos Aires</h3>
-              <p className="text-sm font-light leading-relaxed" style={{ color: "var(--text-70)" }}>
-                R$ 5.700 por pessoa na companhia aérea. Com a estratégia Viagente, R$ 420 mais taxas. E a cliente não
-                tinha milhas.
-              </p>
-            </div>
-          </Reveal>
-
-          {/* TODO: case Felipe (Hard Rock) — pendente de números finais, adicionar quando o time confirmar */}
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <Reveal delay={150}>
-              <div className="card h-full">
-                <h3 className="mb-3 text-base font-normal">Segurança dos seus dados</h3>
-                <p className="text-sm font-light leading-relaxed" style={{ color: "var(--text-70)" }}>
-                  Nunca pedimos senha de banco ou de cartão. Emissões com milhas só acontecem com você na tela,
-                  compartilhando o próprio computador, e todo resgate exige o reconhecimento facial do titular na
-                  companhia aérea. Contrato formal, nota fiscal e tudo registrado no portal do cliente.
-                </p>
-              </div>
-            </Reveal>
-            <Reveal delay={220}>
-              <div className="card h-full">
-                <h3 className="mb-3 text-base font-normal">Garantia de 12 meses</h3>
-                <p className="text-sm font-light leading-relaxed" style={{ color: "var(--text-70)" }}>
-                  Se em 12 meses a economia gerada não superar o valor investido na gestão, prorrogamos o contrato por
-                  mais um ano, sem nenhum custo.
-                </p>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- DEPOIMENTOS ---------- */}
+      {/* ---------- VOCÊ CHEGOU ATÉ AQUI ---------- */}
       <section className="relative px-6 py-24 glow-secao">
-        <div className="max-w-3xl mx-auto">
-          <Reveal className="text-center mb-14">
-            <span className="text-xs uppercase font-medium" style={{ letterSpacing: "3px", color: "var(--gold-solid)" }}>
-              Depoimentos
+        <div className="max-w-3xl mx-auto text-center">
+          <Reveal>
+            <span
+              className="text-xs uppercase font-medium"
+              style={{ letterSpacing: "3px", color: "var(--gold-solid)" }}
+            >
+              Viagente
             </span>
-            <div className="divisor-dourado mx-auto mt-4" />
           </Reveal>
 
-          <div className="grid gap-6">
-            {testimonials.map((t, i) => (
-              <Reveal key={i} delay={i * 100}>
-                <div className="card">
-                  <div className="flex items-center gap-1 mb-4" aria-hidden="true">
-                    {Array.from({ length: 5 }).map((_, idx) => (
-                      <svg key={idx} width="14" height="14" viewBox="0 0 20 20" fill="var(--gold-solid)">
-                        <path d="M10 1l2.6 5.9 6.4.6-4.8 4.3 1.4 6.2L10 15l-5.6 3 1.4-6.2L1 7.5l6.4-.6L10 1z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <p className="text-sm font-light leading-relaxed mb-5" style={{ color: "var(--text-70)" }}>
-                    &ldquo;{t.texto}&rdquo;
+          <Reveal delay={60}>
+            <p className="mt-4 text-sm font-light uppercase" style={{ letterSpacing: "2px", color: "var(--text-muted)" }}>
+              Você chegou até aqui
+            </p>
+          </Reveal>
+
+          <Reveal delay={120}>
+            <h2
+              className="font-light leading-snug mt-4"
+              style={{ fontSize: "clamp(26px, 4.5vw, 40px)", letterSpacing: "0.9px", color: "var(--text)" }}
+            >
+              Cada viagem sem estratégia
+              <br />é dinheiro que não volta.
+            </h2>
+          </Reveal>
+
+          <Reveal delay={180}>
+            <div className="divisor-dourado mx-auto mt-6" />
+          </Reveal>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-12">
+            {[
+              { valor: "1,4x", label: "multiplicador médio do investimento" },
+              { valor: "5,0 ★", label: "avaliação real no Google" },
+              { valor: "Risco Zero", label: "garantia contratual" },
+            ].map((stat, i) => (
+              <Reveal key={stat.valor} delay={220 + i * 100}>
+                <div className="card h-full text-center">
+                  <p className="text-3xl md:text-4xl font-semibold text-gold-gradient mb-2">{stat.valor}</p>
+                  <p className="text-xs font-light" style={{ color: "var(--text-70)" }}>
+                    {stat.label}
                   </p>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
-                      style={{
-                        background: "rgba(184,134,42,0.2)",
-                        border: "1px solid rgba(184,134,42,0.4)",
-                        color: "var(--gold-solid)",
-                      }}
-                    >
-                      {t.nome.charAt(0)}
-                    </span>
-                    <div className="text-xs font-light">
-                      <p style={{ color: "var(--text)" }}>{t.nome}</p>
-                      <p style={{ color: "var(--text-muted)" }}>{t.profissao}</p>
-                    </div>
-                  </div>
                 </div>
               </Reveal>
             ))}
           </div>
+
+          <Reveal delay={560}>
+            <p
+              className="font-light mt-14"
+              style={{ fontSize: "clamp(20px, 3vw, 26px)", color: "var(--text)", letterSpacing: "0.4px" }}
+            >
+              A próxima viagem pode custar muito menos.
+            </p>
+          </Reveal>
+
+          <Reveal delay={620}>
+            <p className="text-sm font-light mt-4" style={{ color: "var(--text-muted)" }}>
+              O diagnóstico é o primeiro passo. Gratuito. Sem compromisso.
+            </p>
+          </Reveal>
         </div>
       </section>
 
-      {/* ---------- QUEM ATENDE ---------- */}
+      {/* ---------- DEPOIMENTOS ---------- */}
       <section className="relative px-6 py-24">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <Reveal className="text-center mb-14">
-            <span className="text-xs uppercase font-medium" style={{ letterSpacing: "3px", color: "var(--gold-solid)" }}>
-              Quem atende
-            </span>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <span className="text-xs uppercase font-medium" style={{ letterSpacing: "3px", color: "var(--gold-solid)" }}>
+                Avaliações reais · Google
+              </span>
+              <span
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1"
+                style={{
+                  borderRadius: "100px",
+                  background: "rgba(229,149,1,0.08)",
+                  border: "1px solid rgba(229,149,1,0.2)",
+                  color: "var(--text)",
+                }}
+              >
+                <span style={{ color: "var(--gold-mid)" }}>★</span> 5,0
+              </span>
+            </div>
+            <h2 className="font-light" style={{ fontSize: "clamp(26px, 4vw, 36px)", letterSpacing: "0.9px" }}>
+              O que nossos clientes <span className="text-gold-gradient font-normal">falam.</span>
+            </h2>
             <div className="divisor-dourado mx-auto mt-4" />
           </Reveal>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <Reveal>
-              <div className="card h-full">
-                <h3 className="text-lg font-normal mb-1">Murillo Souza</h3>
-                <p className="text-sm font-light" style={{ color: "var(--text-70)" }}>
-                  Agente de viagens desde 2019, fundador da Viagente.
-                </p>
-              </div>
-            </Reveal>
-            <Reveal delay={100}>
-              <div className="card h-full">
-                <h3 className="text-lg font-normal mb-1">Max</h3>
-                <p className="text-sm font-light" style={{ color: "var(--text-70)" }}>
-                  Sócio e estrategista, conduz as análises.
-                </p>
-              </div>
-            </Reveal>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {testimonials.map((t, i) => {
+              const soft = t.borderVariant === "gold-soft"
+              return (
+                <Reveal key={t.nome} delay={i * 100}>
+                  <div
+                    className="card h-full"
+                    style={{
+                      padding: "16px",
+                      borderTopWidth: "2px",
+                      borderTopColor: soft ? "rgba(212,165,55,0.5)" : "var(--gold-mid)",
+                      borderColor: soft ? "rgba(212,165,55,0.2)" : undefined,
+                    }}
+                  >
+                    <div
+                      className="relative w-full mb-3 overflow-hidden"
+                      style={{ aspectRatio: "1 / 1", borderRadius: "8px" }}
+                    >
+                      <Image src={t.foto} alt={t.nome} fill sizes="(max-width: 640px) 100vw, 260px" className="object-cover" />
+                    </div>
+                    <div className="mb-2" style={{ color: "var(--gold-solid)", fontSize: "14px", letterSpacing: "1px" }} aria-hidden="true">
+                      ★★★★★
+                    </div>
+                    <p className="text-xs font-light leading-relaxed mb-3" style={{ color: "var(--text-70)" }}>
+                      &ldquo;{t.texto}&rdquo;
+                    </p>
+                    <div
+                      className="flex items-center gap-2.5 pt-2.5"
+                      style={{ borderTop: `1px solid ${soft ? "rgba(212,165,55,0.15)" : "var(--border)"}` }}
+                    >
+                      <span
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                        style={{
+                          background: soft ? "rgba(212,165,55,0.1)" : "rgba(42,42,42,1)",
+                          border: `1px solid ${soft ? "rgba(212,165,55,0.2)" : "var(--border)"}`,
+                          color: "var(--gold-solid)",
+                        }}
+                      >
+                        {t.nome.charAt(0)}
+                      </span>
+                      <div className="text-xs font-light">
+                        <p style={{ color: "var(--text)", fontWeight: 600 }}>{t.nome}</p>
+                        <p style={{ color: "var(--text-muted)", fontSize: "9px" }}>{t.fonte}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Reveal>
+              )
+            })}
           </div>
         </div>
       </section>

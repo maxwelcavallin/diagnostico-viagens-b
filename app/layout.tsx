@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Space_Grotesk } from "next/font/google"
 import GTM, { GTMNoScript } from "@/components/GTM"
 import "./globals.css"
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+})
+
+// Usada só na seção "12,8%" (número de impacto), replicada do app Viagente
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
   display: "swap",
 })
 
@@ -39,7 +46,10 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
       </head>
-      <body className={`${inter.variable} antialiased`} style={{ fontFamily: "var(--font-inter)" }}>
+      <body
+        className={`${inter.variable} ${spaceGrotesk.variable} antialiased`}
+        style={{ fontFamily: "var(--font-inter)" }}
+      >
         <GTMNoScript />
         {children}
       </body>

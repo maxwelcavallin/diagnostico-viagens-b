@@ -216,6 +216,42 @@ body {
   mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
 }
 
+/* ---------- Glow de seção (pulso ao entrar na tela) — seção 12,8% ---------- */
+.section-glow-trigger {
+  position: relative;
+}
+.section-glow-trigger::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(113, 105, 221, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.5);
+  z-index: 0;
+}
+.section-glow-trigger.glow-active::before {
+  animation: sectionGlow 600ms ease-out forwards;
+}
+@keyframes sectionGlow {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 0.15;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+.glow-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(113, 105, 221, 0.4) 50%, transparent 100%);
+  border: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aurora-blob-gold,
   .aurora-blob-gold-secondary,
