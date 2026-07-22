@@ -276,6 +276,9 @@ export default function HomeClient() {
         </div>
       </section>
 
+      {/* ---------- PAIN STAT — 12,8% (réplica do app Viagente) ---------- */}
+      <PainStatSection />
+
       {/* ---------- COMO FUNCIONA ---------- */}
       <section className="relative px-6 py-24 glow-secao">
         <div className="max-w-4xl mx-auto">
@@ -323,9 +326,6 @@ export default function HomeClient() {
         </div>
       </section>
 
-      {/* ---------- PAIN STAT — 12,8% (réplica do app Viagente) ---------- */}
-      <PainStatSection />
-
       {/* ---------- VOCÊ CHEGOU ATÉ AQUI ---------- */}
       <section className="relative px-6 py-24 glow-secao">
         <div className="max-w-3xl mx-auto text-center">
@@ -358,10 +358,9 @@ export default function HomeClient() {
             <div className="divisor-dourado mx-auto mt-6" />
           </Reveal>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-12 max-w-md mx-auto">
             {[
               { valor: "1,4x", label: "multiplicador médio do investimento" },
-              { valor: "5,0 ★", label: "avaliação real no Google" },
               { valor: "Risco Zero", label: "garantia contratual" },
             ].map((stat, i) => (
               <Reveal key={stat.valor} delay={220 + i * 100}>
