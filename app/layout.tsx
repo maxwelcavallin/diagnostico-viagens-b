@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
-import MetaPixel from "@/components/MetaPixel"
 import GTM, { GTMNoScript } from "@/components/GTM"
 import "./globals.css"
 
@@ -42,7 +41,6 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} antialiased`} style={{ fontFamily: "var(--font-inter)" }}>
         <GTMNoScript />
-        <MetaPixel />
         {children}
       </body>
     </html>

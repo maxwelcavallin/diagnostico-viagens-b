@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { trackPixelEvent } from "@/components/MetaPixel"
 import {
-  generateEventId,
   captureTrackingParams,
   pushToDataLayer,
   getOrCreateLeadEventId,
@@ -167,23 +165,22 @@ export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps)
     lastStepRef.current = 1
 
     trackingParamsRef.current = captureTrackingParams()
-    const eventId = generateEventId()
-
-    trackPixelEvent("InitiateCheckout", { content_name: "diagnostico-viagens-b" }, eventId)
-    fetch("/api/meta-event", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        eventName: "InitiateCheckout",
-        eventId,
-        fbc: trackingParamsRef.current.fbc,
-        fbp: trackingParamsRef.current.fbp,
-        customData: { content_name: "diagnostico-viagens-b" },
-      }),
-    }).catch(() => {})
+    const tracking = trackingParamsRef.current
 
     startedRef.current = true
-    pushToDataLayer("diagnostico_b_start", { ...getStepMeta(1), action_name: "start" })
+    pushToDataLayer("diagnostico_b_start", {
+      ...getStepMeta(1),
+      action_name: "start",
+      utm_source: tracking.utm_source,
+      utm_medium: tracking.utm_medium,
+      utm_campaign: tracking.utm_campaign,
+      utm_term: tracking.utm_term,
+      utm_content: tracking.utm_content,
+      fbclid: tracking.fbclid,
+      gclid: tracking.gclid,
+      fbc: tracking.fbc,
+      fbp: tracking.fbp,
+    })
     pushToDataLayer("diagnostico_b_step_view", {
       ...getStepMeta(1),
       action_name: "step_view",
@@ -337,32 +334,6 @@ export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps)
       if (leadRes.ok) {
         leadCreatedRef.current = true
 
-        trackPixelEvent(
-          "Lead",
-          { content_name: "diagnostico-viagens-b", currency: "BRL", value: resultado.economiaMin },
-          leadEventId
-        )
-        fetch("/api/meta-event", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventName: "Lead",
-            eventId: leadEventId,
-            email: formData.email,
-            phone: `55${whatsappDisplay.replace(/\D/g, "")}`,
-            firstName: formData.nome.split(" ")[0],
-            fbc: tracking.fbc,
-            fbp: tracking.fbp,
-            clientUserAgent: tracking.client_user_agent,
-            customData: {
-              content_name: "diagnostico-viagens-b",
-              currency: "BRL",
-              value: resultado.economiaMin,
-              temperatura_lead: resultado.temperatura,
-            },
-          }),
-        }).catch(() => {})
-
         pushToDataLayer("generate_lead", {
           ...finalStep,
           event_id: leadEventId,
@@ -372,6 +343,17 @@ export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps)
           temperatura_lead: resultado.temperatura,
           mql: resultado.mql,
           crm_status: "success",
+          currency: "BRL",
+          value: resultado.economiaMin,
+          utm_source: tracking.utm_source,
+          utm_medium: tracking.utm_medium,
+          utm_campaign: tracking.utm_campaign,
+          utm_term: tracking.utm_term,
+          utm_content: tracking.utm_content,
+          fbclid: tracking.fbclid,
+          gclid: tracking.gclid,
+          fbc: tracking.fbc,
+          fbp: tracking.fbp,
         })
       } else {
         pushToDataLayer("diagnostico_b_integration_error", {
@@ -469,7 +451,6 @@ export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps)
         action_name: "step_view",
         completion_percentage: Math.round((nextStep / TOTAL_STEPS) * 100),
       })
-      trackPixelEvent("ViewContent", { step: nextStep, content_name: "diagnostico-viagens-b" })
 
       setAnimating(true)
       setTimeout(() => setAnimating(false), 220)
