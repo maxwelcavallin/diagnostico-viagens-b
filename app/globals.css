@@ -1,0 +1,230 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #111111;
+  --card-bg: #1c1c1c;
+  --border: #2a2a2a;
+
+  --gold-light: #f0cd6b;
+  --gold-mid: #d4a537;
+  --gold-deep: #9c6f1e;
+  --gold-solid: #b8862a;
+  --gold-glow-a: #e59501;
+  --gold-glow-b: #986300;
+
+  --tech-purple: #7169dd;
+  --tech-purple-light: #a8a3e8;
+  --tech-purple-glow: rgba(113, 105, 221, 0.12);
+
+  --text: #ffffff;
+  --text-70: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.55);
+}
+
+@theme inline {
+  --font-sans: "Inter", "Inter Fallback", system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-card-bg: var(--card-bg);
+  --color-border: var(--border);
+  --color-gold-light: var(--gold-light);
+  --color-gold-mid: var(--gold-mid);
+  --color-gold-deep: var(--gold-deep);
+  --color-gold-solid: var(--gold-solid);
+  --color-tech-purple: var(--tech-purple);
+  --color-text: var(--text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ---------- Gradiente dourado (palavra de impacto, botão primário, divisor) ---------- */
+.text-gold-gradient {
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-mid) 45%, var(--gold-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Botões — cantos sempre retos ---------- */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-mid) 45%, var(--gold-deep) 100%);
+  color: #111111;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 16px 36px;
+  border-radius: 0;
+  letter-spacing: 0.02em;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-70);
+  font-weight: 300;
+  font-size: 14px;
+  padding: 16px 36px;
+  border-radius: 0;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.btn-outline:hover {
+  border-color: var(--gold-mid);
+  color: var(--text);
+}
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  transition: border-color 0.3s ease;
+}
+.card:hover {
+  border-color: var(--gold-mid);
+}
+.card-featured {
+  border-top: 2px solid var(--gold-solid);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---------- Divisor de seção ---------- */
+.divisor-dourado {
+  width: 40px;
+  height: 3px;
+  border-radius: 4px;
+  background: linear-gradient(to right, var(--gold-light), var(--gold-deep));
+  margin: 24px 0;
+}
+
+/* ---------- Aurora blobs ---------- */
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.aurora-blob-gold {
+  width: 700px;
+  height: 500px;
+  background: radial-gradient(ellipse, var(--gold-mid) 0%, transparent 70%);
+  top: -80px;
+  left: -120px;
+  animation: driftA 18s ease-in-out infinite;
+}
+.aurora-blob-gold-secondary {
+  width: 600px;
+  height: 500px;
+  background: radial-gradient(ellipse, var(--gold-mid) 0%, transparent 70%);
+  opacity: 0.35;
+  animation: driftA 20s ease-in-out infinite reverse;
+}
+.aurora-blob-purple {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(ellipse, var(--tech-purple) 0%, transparent 70%);
+  opacity: 0.22;
+  animation: driftB 22s ease-in-out infinite;
+}
+
+@keyframes driftA {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(40px, -30px) scale(1.08);
+  }
+  66% {
+    transform: translate(-25px, 20px) scale(0.94);
+  }
+  100% {
+    transform: translate(15px, -15px) scale(1.04);
+  }
+}
+@keyframes driftB {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-30px, 20px) scale(1.06);
+  }
+  66% {
+    transform: translate(20px, -15px) scale(0.96);
+  }
+  100% {
+    transform: translate(-10px, 10px) scale(1.02);
+  }
+}
+
+/* ---------- Glow radial de seção ---------- */
+.glow-secao {
+  background-image: radial-gradient(at 75% 50%, rgba(212, 165, 55, 0.06) 0%, transparent 55%);
+}
+
+/* ---------- Reveal on scroll ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.5s ease-out var(--delay, 0ms), transform 0.5s ease-out var(--delay, 0ms);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- Grid pontilhado (hero) ---------- */
+.dot-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(212, 165, 55, 0.1) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob-gold,
+  .aurora-blob-gold-secondary,
+  .aurora-blob-purple {
+    animation: none;
+  }
+  .reveal {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
