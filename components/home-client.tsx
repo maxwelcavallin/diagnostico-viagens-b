@@ -262,9 +262,9 @@ export default function HomeClient() {
 
           <Reveal delay={180}>
             <p className="text-base md:text-lg font-light leading-relaxed max-w-xl" style={{ color: "var(--text-70)" }}>
-              E receba a análise de um estrategista, não de um robô. Você responde em 3 minutos e sai daqui com uma
-              estimativa. A análise completa é apresentada por uma pessoa do nosso time, numa devolutiva de 15
-              minutos.
+              E receba a análise de um estrategista, não de um robô. Você responde em menos de 1 minuto e sai daqui
+              com uma estimativa. A análise completa é apresentada por uma pessoa do nosso time, numa devolutiva de
+              15 minutos.
             </p>
           </Reveal>
 
@@ -297,7 +297,7 @@ export default function HomeClient() {
               {
                 n: "01",
                 title: "Você responde",
-                desc: "Você responde 5 perguntas sobre suas viagens e seus gastos. Leva 3 minutos.",
+                desc: "Você responde 6 perguntas sobre suas viagens e seus gastos. Demora menos de 1 minuto.",
               },
               {
                 n: "02",
@@ -487,7 +487,7 @@ export default function HomeClient() {
           </Reveal>
           <Reveal delay={100}>
             <p className="text-sm font-light mb-8" style={{ color: "var(--text-70)" }}>
-              Leva 3 minutos. Sem compromisso.
+              Demora menos de 1 minuto. Sem compromisso.
             </p>
           </Reveal>
           <Reveal delay={180}>

@@ -1,12 +1,12 @@
 export type Frequencia = "1-2" | "3-5" | "6+" | "raramente"
 export type GastoAnual = "ate-10k" | "10-25k" | "25-50k" | "acima-50k"
-export type GastoCartao = "ate-5k" | "5-15k" | "15-30k" | "acima-30k"
 export type Maturidade = "nunca-estruturei" | "eu-mesmo" | "curso-pouco" | "quero-delegar"
 
 export interface DiagnosticoFormData {
   frequencia: Frequencia
   gastoAnual: GastoAnual
-  gastoCartao: GastoCartao
+  cartoes: string[]
+  gastoCartaoMensal: number
   maturidade: Maturidade
   nome: string
   whatsapp: string
@@ -19,8 +19,7 @@ export interface DiagnosticoResult {
   nome: string
   temperatura: Temperatura
   mql: boolean
-  economiaMin: number
-  economiaMax: number
+  economiaAte: number
   gastoAnualEstimado: number
   ctaLabel: string
   ctaTom: "direto" | "consultivo"
@@ -41,13 +40,18 @@ const FAIXA_ECONOMIA: Record<Temperatura, { min: number; max: number }> = {
   frio: { min: 0.05, max: 0.1 },
 }
 
+// Gasto no cartão a partir do qual o lead vira MQL / entra na faixa "quente" —
+// mesmos limiares de R$ 15 mil e R$ 30 mil que existiam nos buckets do formulário.
+const GASTO_CARTAO_ALTO = 30000
+const GASTO_CARTAO_MEDIO = 15000
+
 function freqAlta(frequencia: Frequencia): boolean {
   return frequencia === "3-5" || frequencia === "6+"
 }
 
 function classificarTemperatura(data: DiagnosticoFormData): Temperatura {
-  const cartaoAlto = data.gastoCartao === "acima-30k"
-  const cartaoMedio = data.gastoCartao === "15-30k"
+  const cartaoAlto = data.gastoCartaoMensal >= GASTO_CARTAO_ALTO
+  const cartaoMedio = data.gastoCartaoMensal >= GASTO_CARTAO_MEDIO && data.gastoCartaoMensal < GASTO_CARTAO_ALTO
   const frequenciaAlta = freqAlta(data.frequencia)
 
   if (cartaoAlto && frequenciaAlta) return "quente"
@@ -56,10 +60,15 @@ function classificarTemperatura(data: DiagnosticoFormData): Temperatura {
 }
 
 function classificarMql(data: DiagnosticoFormData): boolean {
-  const cartao15Mais = data.gastoCartao === "15-30k" || data.gastoCartao === "acima-30k"
+  const cartao15Mais = data.gastoCartaoMensal >= GASTO_CARTAO_MEDIO
   const perfilDelegador =
     data.maturidade === "nunca-estruturei" || data.maturidade === "quero-delegar"
   return cartao15Mais || (freqAlta(data.frequencia) && perfilDelegador)
+}
+
+/** Arredonda sempre pra cima — a estimativa exibida como "ATÉ" nunca fica abaixo do valor calculado. */
+function arredondarParaCima(valor: number, passo = 100): number {
+  return Math.ceil(valor / passo) * passo
 }
 
 export function calcularDiagnostico(data: DiagnosticoFormData): DiagnosticoResult {
@@ -68,8 +77,7 @@ export function calcularDiagnostico(data: DiagnosticoFormData): DiagnosticoResul
   const gastoAnualEstimado = GASTO_ANUAL_ESTIMADO[data.gastoAnual]
   const faixa = FAIXA_ECONOMIA[temperatura]
 
-  const economiaMin = Math.round((gastoAnualEstimado * faixa.min) / 50) * 50
-  const economiaMax = Math.round((gastoAnualEstimado * faixa.max) / 50) * 50
+  const economiaAte = arredondarParaCima(gastoAnualEstimado * faixa.max)
 
   const leadPronto = temperatura === "quente" || mql
 
@@ -77,8 +85,7 @@ export function calcularDiagnostico(data: DiagnosticoFormData): DiagnosticoResul
     nome: data.nome,
     temperatura,
     mql,
-    economiaMin,
-    economiaMax,
+    economiaAte,
     gastoAnualEstimado,
     ctaLabel: leadPronto ? "Escolher meu horário agora" : "Agendar minha devolutiva",
     ctaTom: leadPronto ? "direto" : "consultivo",
@@ -108,16 +115,26 @@ export const gastoAnualBucketMap: Record<GastoAnual, string> = {
   "acima-50k": "above_50k",
 }
 
-export const gastoCartaoBucketMap: Record<GastoCartao, string> = {
-  "ate-5k": "up_to_5k",
-  "5-15k": "5k_15k",
-  "15-30k": "15k_30k",
-  "acima-30k": "above_30k",
-}
-
 export const maturidadeBucketMap: Record<Maturidade, string> = {
   "nunca-estruturei": "never_structured",
   "eu-mesmo": "self_managed",
   "curso-pouco": "trained_low_usage",
   "quero-delegar": "wants_to_delegate",
+}
+
+/** Bucket de gasto mensal no cartão — nunca o valor exato declarado no dataLayer. */
+export function gastoCartaoBucket(valor: number): string {
+  if (valor <= 0) return "none"
+  if (valor < 5000) return "up_to_5k"
+  if (valor < 15000) return "5k_15k"
+  if (valor < 30000) return "15k_30k"
+  return "above_30k"
+}
+
+/** Bucket de quantidade de cartões selecionados — nunca os nomes reais no dataLayer. */
+export function cartoesCountBucket(count: number): string {
+  if (count <= 0) return "0"
+  if (count === 1) return "1"
+  if (count <= 3) return "2_3"
+  return "4_plus"
 }

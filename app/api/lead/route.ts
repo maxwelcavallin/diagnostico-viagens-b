@@ -6,13 +6,13 @@ interface LeadPayload {
   whatsapp: string
   frequencia: string
   gastoAnual: string
-  gastoCartao: string
+  cartoes: string[]
+  gastoCartaoMensal: number
   maturidade: string
   // Campos calculados
   temperatura: string
   mql: boolean
-  economiaMin: number
-  economiaMax: number
+  economiaAte: number
   gastoAnualEstimado: number
   // UTMs
   utm_source?: string
@@ -49,14 +49,8 @@ function formatarGastoAnual(v: string): string {
   return map[v] ?? v
 }
 
-function formatarGastoCartao(v: string): string {
-  const map: Record<string, string> = {
-    "ate-5k": "Até R$ 5 mil",
-    "5-15k": "R$ 5 a 15 mil",
-    "15-30k": "R$ 15 a 30 mil",
-    "acima-30k": "Acima de R$ 30 mil",
-  }
-  return map[v] ?? v
+function formatarMoeda(v: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v)
 }
 
 function formatarMaturidade(v: string): string {
@@ -84,14 +78,14 @@ async function sendPipe(payload: LeadPayload): Promise<{ simulated: boolean }> {
 
     frequencia_viagens: formatarFrequencia(payload.frequencia),
     gasto_anual_viagens: formatarGastoAnual(payload.gastoAnual),
-    gasto_mensal_cartao: formatarGastoCartao(payload.gastoCartao),
+    cartoes_credito: payload.cartoes,
+    gasto_mensal_cartao: formatarMoeda(payload.gastoCartaoMensal),
     maturidade_milhas: formatarMaturidade(payload.maturidade),
 
     temperatura_lead: payload.temperatura,
     mql: payload.mql,
 
-    economia_min: payload.economiaMin,
-    economia_max: payload.economiaMax,
+    economia_ate: payload.economiaAte,
     gasto_anual_estimado: payload.gastoAnualEstimado,
 
     data_lead: new Date().toISOString(),

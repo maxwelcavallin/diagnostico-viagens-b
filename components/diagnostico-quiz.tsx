@@ -14,10 +14,13 @@ import {
   calcularDiagnostico,
   frequenciaBucketMap,
   gastoAnualBucketMap,
-  gastoCartaoBucketMap,
+  gastoCartaoBucket,
+  cartoesCountBucket,
   maturidadeBucketMap,
   type DiagnosticoFormData,
 } from "@/lib/diagnostico"
+import { CARTOES_CREDITO, matchCartao } from "@/lib/cartoes-data"
+import { maskCurrencyInput } from "@/lib/mask"
 
 interface ValidationError {
   field_name: string
@@ -30,7 +33,7 @@ interface DiagnosticoQuizProps {
   onClose: () => void
 }
 
-const TOTAL_STEPS = 5
+const TOTAL_STEPS = 6
 
 const loadingMessages = [
   "Analisando suas respostas...",
@@ -53,13 +56,6 @@ const gastoAnualOptions = [
   { value: "acima-50k", label: "Acima de R$ 50 mil" },
 ]
 
-const gastoCartaoOptions = [
-  { value: "ate-5k", label: "Até R$ 5 mil" },
-  { value: "5-15k", label: "R$ 5 a 15 mil" },
-  { value: "15-30k", label: "R$ 15 a 30 mil" },
-  { value: "acima-30k", label: "Acima de R$ 30 mil" },
-]
-
 const maturidadeOptions = [
   { value: "nunca-estruturei", label: "Ninguém, nunca estruturei" },
   { value: "eu-mesmo", label: "Eu mesmo, quando dá tempo" },
@@ -70,9 +66,10 @@ const maturidadeOptions = [
 const stepSlugMap: Record<number, string> = {
   1: "frequencia_viagens",
   2: "gasto_anual_viagens",
-  3: "gasto_mensal_cartao",
-  4: "maturidade_milhas",
-  5: "dados_contato",
+  3: "cartoes_credito",
+  4: "gasto_mensal_cartao",
+  5: "maturidade_milhas",
+  6: "dados_contato",
 }
 
 function getStepMeta(stepIndex: number) {
@@ -87,19 +84,27 @@ function formatWhatsappDisplay(digits: string): string {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
 }
 
-export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps) {
-  const router = useRouter()
-  const [step, setStep] = useState(1)
-  const [animating, setAnimating] = useState(false)
-  const [formData, setFormData] = useState<DiagnosticoFormData>({
+function emptyFormData(): DiagnosticoFormData {
+  return {
     frequencia: "" as DiagnosticoFormData["frequencia"],
     gastoAnual: "" as DiagnosticoFormData["gastoAnual"],
-    gastoCartao: "" as DiagnosticoFormData["gastoCartao"],
+    cartoes: [],
+    gastoCartaoMensal: 0,
     maturidade: "" as DiagnosticoFormData["maturidade"],
     nome: "",
     whatsapp: "",
     email: "",
-  })
+  }
+}
+
+export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps) {
+  const router = useRouter()
+  const [step, setStep] = useState(1)
+  const [animating, setAnimating] = useState(false)
+  const [formData, setFormData] = useState<DiagnosticoFormData>(emptyFormData())
+  const [cartaoBusca, setCartaoBusca] = useState("")
+  const [cartaoDropdownOpen, setCartaoDropdownOpen] = useState(false)
+  const [gastoCartaoDisplay, setGastoCartaoDisplay] = useState("")
   const [whatsappDisplay, setWhatsappDisplay] = useState("")
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -147,15 +152,10 @@ export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps)
       setSubmitting(false)
       setShowLoading(false)
       setWhatsappDisplay("")
-      setFormData({
-        frequencia: "" as DiagnosticoFormData["frequencia"],
-        gastoAnual: "" as DiagnosticoFormData["gastoAnual"],
-        gastoCartao: "" as DiagnosticoFormData["gastoCartao"],
-        maturidade: "" as DiagnosticoFormData["maturidade"],
-        nome: "",
-        whatsapp: "",
-        email: "",
-      })
+      setCartaoBusca("")
+      setCartaoDropdownOpen(false)
+      setGastoCartaoDisplay("")
+      setFormData(emptyFormData())
       return
     }
 
@@ -242,13 +242,20 @@ export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps)
     if (stepIndex === 2 && !formData.gastoAnual) {
       errs.push({ field_name: "gasto_anual", error_type: "required_field", error_message: "Selecione uma opção." })
     }
-    if (stepIndex === 3 && !formData.gastoCartao) {
-      errs.push({ field_name: "gasto_cartao", error_type: "required_field", error_message: "Selecione uma opção." })
+    if (stepIndex === 3 && formData.cartoes.length === 0) {
+      errs.push({
+        field_name: "cartoes",
+        error_type: "required_field",
+        error_message: "Busque e selecione (ou adicione) pelo menos um cartão.",
+      })
     }
-    if (stepIndex === 4 && !formData.maturidade) {
+    if (stepIndex === 4 && formData.gastoCartaoMensal <= 0) {
+      errs.push({ field_name: "gasto_cartao", error_type: "required_field", error_message: "Informe o gasto mensal no cartão." })
+    }
+    if (stepIndex === 5 && !formData.maturidade) {
       errs.push({ field_name: "maturidade", error_type: "required_field", error_message: "Selecione uma opção." })
     }
-    if (stepIndex === 5) {
+    if (stepIndex === 6) {
       if (!formData.nome.trim()) {
         errs.push({ field_name: "nome", error_type: "required_field", error_message: "Informe seu nome." })
       }
@@ -310,12 +317,12 @@ export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps)
           whatsapp: `+55 ${whatsappDisplay}`,
           frequencia: formData.frequencia,
           gastoAnual: formData.gastoAnual,
-          gastoCartao: formData.gastoCartao,
+          cartoes: formData.cartoes,
+          gastoCartaoMensal: formData.gastoCartaoMensal,
           maturidade: formData.maturidade,
           temperatura: resultado.temperatura,
           mql: resultado.mql,
-          economiaMin: resultado.economiaMin,
-          economiaMax: resultado.economiaMax,
+          economiaAte: resultado.economiaAte,
           gastoAnualEstimado: resultado.gastoAnualEstimado,
           utm_source: tracking.utm_source,
           utm_medium: tracking.utm_medium,
@@ -344,7 +351,7 @@ export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps)
           mql: resultado.mql,
           crm_status: "success",
           currency: "BRL",
-          value: resultado.economiaMin,
+          value: resultado.economiaAte,
           utm_source: tracking.utm_source,
           utm_medium: tracking.utm_medium,
           utm_campaign: tracking.utm_campaign,
@@ -425,8 +432,9 @@ export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps)
       const answerBucketMap: Record<number, string> = {
         1: frequenciaBucketMap[formData.frequencia] ?? "unknown",
         2: gastoAnualBucketMap[formData.gastoAnual] ?? "unknown",
-        3: gastoCartaoBucketMap[formData.gastoCartao] ?? "unknown",
-        4: maturidadeBucketMap[formData.maturidade] ?? "unknown",
+        3: cartoesCountBucket(formData.cartoes.length),
+        4: gastoCartaoBucket(formData.gastoCartaoMensal),
+        5: maturidadeBucketMap[formData.maturidade] ?? "unknown",
       }
 
       pushToDataLayer("diagnostico_b_step_answered", {
@@ -470,6 +478,35 @@ export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps)
 
   const setField = <K extends keyof DiagnosticoFormData>(field: K, value: DiagnosticoFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    setErrors({})
+  }
+
+  const handleAdicionarCartao = (nome: string) => {
+    const nomeTrim = nome.trim()
+    if (!nomeTrim) return
+    const jaExiste = formData.cartoes.some((c) => c.toLowerCase() === nomeTrim.toLowerCase())
+    if (!jaExiste) {
+      setFormData((prev) => ({ ...prev, cartoes: [...prev.cartoes, nomeTrim] }))
+    }
+    setCartaoBusca("")
+    setCartaoDropdownOpen(false)
+    setErrors({})
+  }
+
+  const handleRemoverCartao = (nome: string) => {
+    setFormData((prev) => ({ ...prev, cartoes: prev.cartoes.filter((c) => c !== nome) }))
+  }
+
+  // Sem limite de resultados — a busca é fuzzy (bate em qualquer posição do nome) e a lista
+  // rola dentro do dropdown, então mostramos todos os cartões que derem match.
+  const cartoesFiltrados = CARTOES_CREDITO.filter(
+    (c) => c !== "Outro (customizado)" && !formData.cartoes.includes(c) && matchCartao(c, cartaoBusca)
+  )
+
+  const handleGastoCartaoInput = (raw: string) => {
+    const { display, value } = maskCurrencyInput(raw)
+    setGastoCartaoDisplay(display)
+    setFormData((prev) => ({ ...prev, gastoCartaoMensal: value }))
     setErrors({})
   }
 
@@ -576,20 +613,102 @@ export default function DiagnosticoQuiz({ open, onClose }: DiagnosticoQuizProps)
             )}
 
             {step === 3 && (
-              <StepWrapper title="Gasto mensal no cartão de crédito, somando PF e PJ">
-                <OptionGrid options={gastoCartaoOptions} value={formData.gastoCartao} onChange={(v) => setField("gastoCartao", v as DiagnosticoFormData["gastoCartao"])} />
-                {errors.gasto_cartao && <ErrorMsg>{errors.gasto_cartao}</ErrorMsg>}
+              <StepWrapper title="Quais cartões de crédito você tem hoje?">
+                <div className="flex flex-col gap-3">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={cartaoBusca}
+                      onChange={(e) => {
+                        setCartaoBusca(e.target.value)
+                        setCartaoDropdownOpen(true)
+                      }}
+                      onFocus={() => setCartaoDropdownOpen(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          handleAdicionarCartao(cartaoBusca)
+                        }
+                      }}
+                      placeholder="Busque e selecione, ou digite e aperte Enter"
+                      className="w-full bg-transparent px-0 py-3 font-light focus:outline-none"
+                      style={{ fontSize: "16px", color: "var(--text)", borderBottom: "1px solid var(--border)" }}
+                    />
+                    {cartaoDropdownOpen && cartaoBusca.trim() && cartoesFiltrados.length > 0 && (
+                      <div
+                        className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-lg z-10"
+                        style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}
+                      >
+                        {cartoesFiltrados.map((cartao) => (
+                          <button
+                            key={cartao}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault()
+                              handleAdicionarCartao(cartao)
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-sm font-light"
+                            style={{ color: "var(--text-70)" }}
+                          >
+                            {cartao}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.cartoes.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {formData.cartoes.map((cartao) => (
+                        <span
+                          key={cartao}
+                          className="inline-flex items-center gap-2 text-xs font-light px-3 py-1.5 rounded-full"
+                          style={{ border: "1px solid var(--gold-mid)", background: "rgba(212,165,55,0.08)", color: "var(--text)" }}
+                        >
+                          {cartao}
+                          <button type="button" onClick={() => handleRemoverCartao(cartao)} aria-label={`Remover ${cartao}`}>
+                            <svg width="10" height="10" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                              <path d="M2 2l14 14M16 2L2 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="text-[11px] font-light mt-1" style={{ color: "var(--text-muted)" }}>
+                    Pode selecionar mais de um. Não achou o seu? Digite o nome e aperte Enter.
+                  </p>
+                  {errors.cartoes && <ErrorMsg>{errors.cartoes}</ErrorMsg>}
+                </div>
               </StepWrapper>
             )}
 
             {step === 4 && (
+              <StepWrapper title="Gasto mensal no cartão de crédito, somando PF e PJ">
+                <div>
+                  <input
+                    inputMode="numeric"
+                    type="text"
+                    value={gastoCartaoDisplay}
+                    onChange={(e) => handleGastoCartaoInput(e.target.value)}
+                    placeholder="R$ 0,00"
+                    className="w-full bg-transparent px-0 py-3 font-light focus:outline-none"
+                    style={{ fontSize: "16px", color: "var(--text)", borderBottom: "1px solid var(--border)" }}
+                  />
+                  {errors.gasto_cartao && <ErrorMsg>{errors.gasto_cartao}</ErrorMsg>}
+                </div>
+              </StepWrapper>
+            )}
+
+            {step === 5 && (
               <StepWrapper title="Hoje, quem cuida das suas milhas e emissões?">
                 <OptionGrid options={maturidadeOptions} value={formData.maturidade} onChange={(v) => setField("maturidade", v as DiagnosticoFormData["maturidade"])} />
                 {errors.maturidade && <ErrorMsg>{errors.maturidade}</ErrorMsg>}
               </StepWrapper>
             )}
 
-            {step === 5 && (
+            {step === 6 && (
               <StepWrapper title="Seus dados para receber a análise">
                 <div className="flex flex-col gap-6">
                   <div>
